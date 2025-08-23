@@ -43,24 +43,22 @@ export function LandingPage() {
 }
 
 function QrBlock({ campaignId, scanId }: { campaignId: string; scanId: string }) {
-  const [lanHost, setLanHost] = useState<string | null>(null)
-
-  useEffect(() => {
-    let closed = false
-    fetch(`${API_BASE}/api/lan`).then(async r => {
-      const data = await r.json().catch(() => null)
-      if (closed || !data || !Array.isArray(data.ipv4) || data.ipv4.length === 0) return
-      const ip = data.ipv4[0]?.address
-      if (ip) setLanHost(ip)
-    }).catch(() => {})
-    return () => { closed = true }
-  }, [])
-
+  // Use Vercel URL for production, fallback to localhost for development
   const origin = useMemo(() => {
-    if (lanHost) return `http://${lanHost}:5173`
-    if (typeof window !== 'undefined') return window.location.origin
-    return 'http://localhost:5173'
-  }, [lanHost])
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname
+      // Check if we're on Vercel
+      if (hostname.includes('vercel.app')) {
+        return `https://${hostname}`
+      }
+      // Check if we're on localhost (development)
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:5173'
+      }
+    }
+    // Default to Vercel URL for production
+    return 'https://automation-posting-hl8x-827a960kz-kai-shees-projects.vercel.app'
+  }, [])
 
   const url = `${origin}/?c=${encodeURIComponent(campaignId)}&u=${encodeURIComponent(scanId)}`
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`
@@ -84,6 +82,9 @@ function QrBlock({ campaignId, scanId }: { campaignId: string; scanId: string })
         <img src={qrSrc} alt="QR to this page" className="rounded-lg bg-white p-2 border border-white/10" />
         <p className="text-sm text-neutral-300 text-center">
           Scan to open this page on another device. You can also download the QR.
+        </p>
+        <p className="text-xs text-neutral-400 text-center">
+          URL: {url}
         </p>
         <button onClick={downloadQR} className="inline-flex items-center justify-center rounded-lg px-4 py-2 bg-neutral-800 border border-white/10 hover:bg-neutral-700">
           Download QR
