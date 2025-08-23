@@ -1,0 +1,95 @@
+# QR→Social Share Kiosk — Architecture & Step‑by‑Step Build Plan (Malaysia)
+
+This document gives you a production‑ready blueprint: architecture, tech flow, platform constraints, and step‑by‑step tasks from frontend to backend. It assumes the goal is for **customers to scan a QR at your counter, choose a social app (XHS, Facebook, Instagram, WhatsApp, TikTok, etc.), then post content you’ve prepared**. Users may edit the caption and download the image before posting.
+
+> Key reality: **Most platforms will not allow truly automatic posting to a customer’s personal account.** You must use native **Share/Intent/Deep‑link flows**, and provide **Copy Caption** + **Download Image** as fallbacks. Posting to **your own brand Pages** (e.g., Facebook Page) can be automated via API, but that’s a different use case.
+
+---
+
+## 1) Customer Journey (Happy Path)
+
+```mermaid
+flowchart TD
+    A[Customer scans QR at counter] --> B[Opens landing page: share.yourbrand.my/?c=<campaign>&u=<scan_id>]
+    B --> C[Shows prepared content: hero image + default caption]
+    C --> D[Customer may: Edit caption | Download image]
+    D --> E[Select app: XHS | Instagram | Facebook | WhatsApp | TikTok]
+    E --> F{Platform capability}
+    F -- Supports Web Share / Intent --> G[Open app via share sheet with media]
+    F -- No direct share --> H[Open app (deep link) + paste caption + select downloaded image]
+    G --> I[Customer taps Post]
+    H --> I[Customer taps Post]
+    I --> J[Thank‑you screen + optional reward QR/coupon]
+```
+
+---
+
+## 2) High‑Level System Architecture
+
+```mermaid
+graph LR
+    subgraph Device[Customer Phone]
+      PWA[Landing Page (PWA)] -- Web Share API / Deep Links --> Apps[Installed Social Apps]
+    end
+
+    subgraph Cloud[Your Cloud]
+      CDN[(CDN)] --- S3[(Object Storage: images, OG thumbnails)]
+      API[(Backend API)] --- DB[(Database)]
+      CMS[Content CMS/Admin] --- API
+      QR[Dynamic QR Generator] --> API
+    end
+
+    Staff[Staff/Admin] --> CMS
+    PWA <-- content JSON / signed media URLs --> CDN
+    API --> Logs[(Analytics/Logs)]
+```
+
+**Suggested stack**
+- **Frontend**: React/Next.js (PWA), Tailwind; Clipboard API + Web Share API (v2 if available).
+- **Backend**: Laravel / Node.js (Express/NestJS). Rate limiting + signed URLs.
+- **Storage/CDN**: S3‑compatible (e.g., AWS S3) + CloudFront/Cloudflare.
+- **DB**: MySQL/PostgreSQL.
+- **Auth (Admin)**: Email+OTP or SSO; role‑based permissions.
+- **Analytics**: Server logs + UTM + optional GA4/Matomo.
+
+---
+
+## 3) End‑to‑End Technical Flow (Sequence)
+
+```mermaid
+sequenceDiagram
+    participant User as Customer
+    participant PWA as Landing Page (PWA)
+    participant API as Backend API
+    participant CDN as CDN/S3
+    participant CMS as Admin/CMS
+
+    CMS->>API: Create Campaign (caption variants, assets)
+    API->>CDN: Upload assets (images/videos) with cache headers
+    API->>API: Generate dynamic QR: /qr?c={campaign_id}&loc={store_id}
+
+    User->>PWA: Scan QR and open URL
+    PWA->>API: GET /api/campaigns/{campaign_id}?scan={scan_id}
+    API-->>PWA: JSON (caption, asset URLs, share options)
+    PWA->>CDN: Fetch image/og asset via signed or public URL
+    User->>PWA: Edit caption / Download image
+    User->>PWA: Tap “Share to Instagram / XHS / Facebook / WhatsApp / TikTok”
+    PWA->>User: Trigger Web Share / Deep Link / Copy Caption
+    PWA->>API: POST /api/events (share_clicked, app=instagram)
+    User->>Apps: Completes post manually (one tap/paste)
+    PWA->>API: POST /api/events (share_completed? optional via return CTA)
+```
+
+---
+
+## 4) Platform Capabilities & UX Design
+
+| Platform | What works well | What you **cannot** do | Recommended UX |
+|---|---|---|---|
+| **Instagram** | Share to **Stories** via OS share (image) or app intents. | Prefill caption for **Feed** posts; true auto‑post to personal accounts. | **Download image** → button to **Open Instagram** (deep link) → user selects image; **Copy Caption** button shown. For Stories, use Web Share if supported; otherwise show instructions. |
+| **Facebook** | Share a **link** with OG image via share dialog; can open app. | Prefill user’s message text via URL params (blocked). Sharing raw image without user action. | Host a landing link (with OG image/description). Provide **Copy Caption**. |
+| **XiaoHongShu (小红书)** | No public consumer posting API. | True auto‑post to user’s account. | **Download image** + **Copy Caption** + **Open XHS** (attempt deep link; fallback to app store). |
+| **WhatsApp** | Text share via URL; media via OS share sheet. | Directly post to Status without user interaction. | Use **Web Share API** to attach image+caption when supported; else **Copy Caption** + Download. |
+| **TikTok** | App accepts shares via OS share; users must confirm. | Prefill caption reliably via web across all OS versions; true auto‑post. | Use **Web Share** to pass the media; else **download + open app** pattern. |
+
+... (continues through sections 5–14 with full details of frontend spec, backend API, data model, CMS, analytics, legal, step-by-step build plan, code snippets, and checklist) ...
