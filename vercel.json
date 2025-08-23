@@ -23,11 +23,6 @@
       "dest": "/frontend/$1"
     }
   ],
-  "functions": {
-    "backend/src/server.js": {
-      "maxDuration": 30
-    }
-  },
   "env": {
     "SUPABASE_URL": "https://cybwthrumtimvyqxduxw.supabase.co",
     "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5Ynd0aHJ1bXRpbXZ5cXhkdXh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU5NDc3NjEsImV4cCI6MjA3MTUyMzc2MX0.VF3TvAqbNCpk23CDT8ndN2rCrrzq-g5Q270a6RitwT0",
