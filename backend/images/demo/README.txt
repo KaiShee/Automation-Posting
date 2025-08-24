@@ -28,3 +28,10 @@ The system will automatically:
 
 You can also use the web admin interface at:
 http://localhost:5173/admin?c=demo
+
+ADMIN ACCESS:
+1. Go to main page: http://localhost:5173/?c=demo
+2. Click the center image 10 times
+3. Click "Go to Admin" in the modal
+4. Login with: admin / @dmin12345
+5. Click "Show Debug" button for troubleshooting tools

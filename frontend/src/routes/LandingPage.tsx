@@ -1,11 +1,14 @@
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { API_BASE } from '../lib/api'
 
 export function LandingPage() {
   const [params] = useSearchParams()
+  const navigate = useNavigate()
   const campaignId = params.get('c') ?? 'demo'
   const scanId = params.get('u') ?? 'scan-demo'
+  const [clickCount, setClickCount] = useState(0)
+  const [showAdminPrompt, setShowAdminPrompt] = useState(false)
 
   return (
     <section className="container-narrow py-10">
@@ -23,7 +26,19 @@ export function LandingPage() {
 
       <div className="mt-8 grid gap-8">
         <div className="rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-brand-500/10">
-          <img src={`https://picsum.photos/seed/${campaignId}/800/600`} alt="Preview" className="w-full aspect-video object-cover" />
+          <img 
+            src={`https://picsum.photos/seed/${campaignId}/800/600`} 
+            alt="Preview" 
+            className="w-full aspect-video object-cover cursor-pointer" 
+            onClick={() => {
+              const newCount = clickCount + 1
+              setClickCount(newCount)
+              if (newCount >= 10) {
+                setShowAdminPrompt(true)
+                setClickCount(0)
+              }
+            }}
+          />
         </div>
         <p className="text-neutral-200 bg-neutral-900/60 border border-white/10 rounded-xl p-4">
           Default caption for campaign <span className="font-semibold">{campaignId}</span>. Edit on the next screen.
@@ -38,6 +53,32 @@ export function LandingPage() {
           Continue →
         </Link>
       </div>
+
+      {/* Admin Access Modal */}
+      {showAdminPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-neutral-900 border border-white/10 rounded-2xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold mb-4 text-center">🔐 Admin Access</h3>
+            <p className="text-neutral-300 text-center mb-6">
+              You've discovered the admin panel! Do you want to access the image manager?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowAdminPrompt(false)}
+                className="flex-1 px-4 py-2 rounded-lg bg-neutral-800 border border-white/10 hover:bg-neutral-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => navigate(`/admin?c=${encodeURIComponent(campaignId)}`)}
+                className="flex-1 px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-neutral-950 font-semibold"
+              >
+                Go to Admin
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
