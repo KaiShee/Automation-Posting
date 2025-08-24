@@ -15,11 +15,19 @@ const inferApiBase = () => {
 
 export const API_BASE = inferApiBase()
 
+export interface ImageItem {
+  id: string
+  url: string
+  alt: string
+  selected: boolean
+}
+
 export type CampaignResponse = {
   id: string
   name: string
   caption: string
   imageUrl: string
+  images?: ImageItem[]
   share: string[]
   scan?: string
 }

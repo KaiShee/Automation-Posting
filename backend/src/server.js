@@ -47,6 +47,26 @@ async function initDatabase() {
         name: 'Demo Campaign',
         caption: 'Loving this! #YourBrand #Malaysia',
         imageUrl: 'https://picsum.photos/seed/demo/1080/1350',
+        images: [
+          {
+            id: 'img1',
+            url: 'https://picsum.photos/seed/demo1/1080/1350',
+            alt: 'Product Image 1',
+            selected: true
+          },
+          {
+            id: 'img2', 
+            url: 'https://picsum.photos/seed/demo2/1080/1350',
+            alt: 'Product Image 2',
+            selected: false
+          },
+          {
+            id: 'img3',
+            url: 'https://picsum.photos/seed/demo3/1080/1350', 
+            alt: 'Product Image 3',
+            selected: false
+          }
+        ],
         share: ['instagram', 'facebook', 'whatsapp', 'tiktok', 'xhs'],
         created_at: new Date().toISOString()
       })
