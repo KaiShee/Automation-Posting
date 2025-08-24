@@ -169,23 +169,9 @@
 
         function testXHS() {
             try {
-                // Try Web Share API first
-                if (navigator.canShare && navigator.canShare()) {
-                    navigator.share({
-                        text: testCaption,
-                        url: testUrl
-                    }).then(() => {
-                        showStatus('xhs-status', '✅ XHS shared via Web Share API!', true)
-                    }).catch(() => {
-                        // Fallback to app
-                        window.open('xhsdiscover://', '_blank')
-                        showStatus('xhs-status', '✅ XHS app opened (fallback)!', true)
-                    })
-                } else {
-                    // Fallback to app
-                    window.open('xhsdiscover://', '_blank')
-                    showStatus('xhs-status', '✅ XHS app opened (fallback)!', true)
-                }
+                // Simple XHS app opening
+                window.open('xhsdiscover://', '_blank')
+                showStatus('xhs-status', '✅ XHS app opened successfully!', true)
             } catch (e) {
                 showStatus('xhs-status', '❌ XHS test failed: ' + e.message, false)
             }

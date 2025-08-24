@@ -227,29 +227,7 @@ export function SharePage() {
           break
           
         case 'xhs':
-          // XHS: Try Web Share API first, then fallback to app
-          if (navigator.canShare && navigator.canShare()) {
-            try {
-              const selectedImageData = campaign?.images?.filter(img => selectedImages.includes(img.id)) || []
-              if (selectedImageData.length > 0) {
-                const files = await Promise.all(
-                  selectedImageData.map(async (img) => {
-                    const res = await fetch(img.url)
-                    const blob = await res.blob()
-                    return new File([blob], `${img.id}.jpg`, { type: 'image/jpeg' })
-                  })
-                )
-                await navigator.share({ 
-                  text: caption,
-                  files: files
-                })
-                return
-              }
-            } catch (e) {
-              console.log('XHS Web Share failed, falling back to app')
-            }
-          }
-          // Fallback: Open XHS app
+          // XHS: Simple app opening (most reliable method)
           window.open('xhsdiscover://', '_blank')
           break
           
@@ -309,7 +287,7 @@ export function SharePage() {
         // TikTok app (will open camera/upload)
         return 'snssdk1233://'
       case 'xhs':
-        // XHS app (will open posting interface)
+        // XHS app deep link (opens the app)
         return 'xhsdiscover://'
       default:
         return null
@@ -437,9 +415,9 @@ export function SharePage() {
         {/* Instructions */}
         <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
           <p className="text-sm text-blue-300">
-            💡 <strong>How it works:</strong> Click any platform below. For Instagram, TikTok, and XHS, 
-            the app will open and you can paste the caption and select the downloaded images. 
-            WhatsApp and Facebook will open with the content pre-filled.
+            💡 <strong>How it works:</strong> Click any platform below. WhatsApp and Facebook will pre-fill content automatically. 
+            Instagram and TikTok will open their apps for you to paste caption and select images. 
+            XHS will open the app for you to copy caption and select images.
           </p>
         </div>
         
@@ -488,7 +466,10 @@ export function SharePage() {
             <strong>WhatsApp & Facebook:</strong> Content will be pre-filled automatically
           </div>
           <div className="p-2 rounded bg-neutral-900/60">
-            <strong>Instagram, TikTok, XHS:</strong> App opens → Paste caption → Select downloaded images
+            <strong>Instagram, TikTok:</strong> App opens → Paste caption → Select downloaded images
+          </div>
+          <div className="p-2 rounded bg-neutral-900/60">
+            <strong>XHS:</strong> App opens → Copy caption → Select downloaded images
           </div>
         </div>
         
