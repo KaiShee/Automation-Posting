@@ -3,6 +3,16 @@ import cors from 'cors'
 import { nanoid } from 'nanoid'
 import { createClient } from '@supabase/supabase-js'
 import os from 'os'
+import path from 'path'
+import fs from 'fs/promises'
+import { createReadStream, writeFile } from 'fs'
+import multer from 'multer'
+import archiver from 'archiver'
+import { fileURLToPath } from 'url'
+import { dirname } from 'path'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -163,6 +173,215 @@ app.get('/api/events', async (req, res) => {
     res.json({ count: events?.length || 0, events: events || [] })
   } catch (error) {
     console.error('Events fetch error:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Add new endpoint to get all images from folder
+app.get('/api/campaigns/:id/images', async (req, res) => {
+  try {
+    const id = req.params.id
+    const imagesFolder = path.join(__dirname, '..', 'images', id)
+    
+    // Check if folder exists
+    try {
+      await fs.access(imagesFolder)
+    } catch {
+      // Folder doesn't exist, return empty array
+      return res.json({ images: [] })
+    }
+    
+    // Read all files from the folder
+    const files = await fs.readdir(imagesFolder)
+    const imageFiles = files.filter(file => {
+      const ext = path.extname(file).toLowerCase()
+      return ['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)
+    })
+    
+    // Create image objects
+    const images = imageFiles.map((file, index) => {
+      const ext = path.extname(file)
+      const name = path.basename(file, ext)
+      return {
+        id: `img${index + 1}`,
+        url: `/api/images/${id}/${encodeURIComponent(file)}`,
+        alt: name.replace(/[-_]/g, ' '),
+        selected: index === 0, // First image selected by default
+        filename: file
+      }
+    })
+    
+    res.json({ images })
+  } catch (error) {
+    console.error('Images fetch error:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Serve images from folder
+app.get('/api/images/:campaignId/:filename', async (req, res) => {
+  try {
+    const { campaignId, filename } = req.params
+    const imagePath = path.join(__dirname, '..', 'images', campaignId, decodeURIComponent(filename))
+    
+    // Check if file exists
+    try {
+      await fs.access(imagePath)
+    } catch {
+      return res.status(404).json({ error: 'Image not found' })
+    }
+    
+    // Set proper headers for image serving
+    res.setHeader('Content-Type', 'image/jpeg')
+    res.setHeader('Cache-Control', 'public, max-age=31536000') // Cache for 1 year
+    
+    // Stream the file
+    const stream = createReadStream(imagePath)
+    stream.pipe(res)
+  } catch (error) {
+    console.error('Image serve error:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    const campaignId = req.params.campaignId
+    const uploadDir = path.join(__dirname, '..', 'images', campaignId)
+    
+    try {
+      await fs.mkdir(uploadDir, { recursive: true })
+      cb(null, uploadDir)
+    } catch (error) {
+      cb(error)
+    }
+  },
+  filename: (req, file, cb) => {
+    // Keep original filename but sanitize it
+    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')
+    cb(null, sanitizedName)
+  }
+})
+
+const upload = multer({ 
+  storage,
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true)
+    } else {
+      cb(new Error('Invalid file type. Only images are allowed.'))
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+})
+
+// Upload images endpoint
+app.post('/api/upload/:campaignId', upload.array('images', 10), async (req, res) => {
+  try {
+    const { campaignId } = req.params
+    
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' })
+    }
+    
+    const uploadedFiles = req.files.map(file => file.filename)
+    
+    res.json({ 
+      message: `Successfully uploaded ${uploadedFiles.length} image(s)`,
+      files: uploadedFiles
+    })
+  } catch (error) {
+    console.error('Upload error:', error)
+    res.status(500).json({ error: 'Upload failed' })
+  }
+})
+
+// Delete image endpoint
+app.delete('/api/images/:campaignId/:filename', async (req, res) => {
+  try {
+    const { campaignId, filename } = req.params
+    const imagePath = path.join(__dirname, '..', 'images', campaignId, decodeURIComponent(filename))
+    
+    // Check if file exists
+    try {
+      await fs.access(imagePath)
+    } catch {
+      return res.status(404).json({ error: 'Image not found' })
+    }
+    
+    // Delete the file
+    await fs.unlink(imagePath)
+    
+    res.json({ message: 'Image deleted successfully' })
+  } catch (error) {
+    console.error('Delete error:', error)
+    res.status(500).json({ error: 'Failed to delete image' })
+  }
+})
+
+// Download multiple images as zip
+app.get('/api/download/:campaignId', async (req, res) => {
+  try {
+    const { campaignId } = req.params
+    const { images } = req.query // Comma-separated image IDs
+    
+    if (!images) {
+      return res.status(400).json({ error: 'No images specified' })
+    }
+    
+    const imageIds = images.split(',')
+    const imagesFolder = path.join(__dirname, '..', 'images', campaignId)
+    
+    // Check if folder exists
+    try {
+      await fs.access(imagesFolder)
+    } catch {
+      return res.status(404).json({ error: 'Campaign images not found' })
+    }
+    
+    // Get all image files
+    const files = await fs.readdir(imagesFolder)
+    const imageFiles = files.filter(file => {
+      const ext = path.extname(file).toLowerCase()
+      return ['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)
+    })
+    
+    // Filter selected images
+    const selectedImages = imageFiles.filter((_, index) => 
+      imageIds.includes(`img${index + 1}`)
+    )
+    
+    if (selectedImages.length === 0) {
+      return res.status(400).json({ error: 'No valid images selected' })
+    }
+    
+    // Create zip file
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Maximum compression
+    })
+    
+    // Set response headers
+    res.setHeader('Content-Type', 'application/zip')
+    res.setHeader('Content-Disposition', `attachment; filename="${campaignId}-images.zip"`)
+    
+    // Pipe archive to response
+    archive.pipe(res)
+    
+    // Add files to archive
+    for (const filename of selectedImages) {
+      const filePath = path.join(imagesFolder, filename)
+      archive.file(filePath, { name: filename })
+    }
+    
+    // Finalize the archive
+    await archive.finalize()
+    
+  } catch (error) {
+    console.error('Download error:', error)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

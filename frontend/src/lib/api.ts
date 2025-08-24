@@ -36,7 +36,23 @@ export async function fetchCampaign(campaignId: string, scanId: string): Promise
   const url = `${API_BASE}/api/campaigns/${encodeURIComponent(campaignId)}?scan=${encodeURIComponent(scanId)}`
   const res = await fetch(url)
   if (!res.ok) throw new Error(`Failed to fetch campaign: ${res.status}`)
-  return res.json()
+  const campaign = await res.json()
+  
+  // Fetch dynamic images from folder
+  try {
+    const imagesRes = await fetch(`${API_BASE}/api/campaigns/${encodeURIComponent(campaignId)}/images`)
+    if (imagesRes.ok) {
+      const { images } = await imagesRes.json()
+      if (images && images.length > 0) {
+        campaign.images = images
+        campaign.imageUrl = images[0]?.url || campaign.imageUrl
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to fetch dynamic images:', error)
+  }
+  
+  return campaign
 }
 
 export async function postEvent(payload: {
@@ -53,6 +69,22 @@ export async function postEvent(payload: {
   })
   if (!res.ok) throw new Error(`Failed to post event: ${res.status}`)
   return res.json()
+}
+
+export async function downloadImagesAsZip(campaignId: string, imageIds: string[]) {
+  const url = `${API_BASE}/api/download/${encodeURIComponent(campaignId)}?images=${imageIds.join(',')}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Failed to download images: ${res.status}`)
+  
+  const blob = await res.blob()
+  const downloadUrl = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = downloadUrl
+  a.download = `${campaignId}-images.zip`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(downloadUrl)
 }
 
 

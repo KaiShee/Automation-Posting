@@ -6,6 +6,7 @@ import { AppLayout } from './ui/AppLayout'
 import { LandingPage } from './routes/LandingPage'
 import { SharePage } from './routes/SharePage'
 import { ThankYouPage } from './routes/ThankYouPage'
+import { AdminPage } from './routes/AdminPage'
 
 const router = createBrowserRouter([
   {
@@ -15,6 +16,7 @@ const router = createBrowserRouter([
       { index: true, element: <LandingPage /> },
       { path: 'share', element: <SharePage /> },
       { path: 'thanks', element: <ThankYouPage /> },
+      { path: 'admin', element: <AdminPage /> },
     ],
   },
 ])

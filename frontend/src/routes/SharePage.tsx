@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { fetchCampaign, postEvent } from '../lib/api'
+import { fetchCampaign, postEvent, downloadImagesAsZip } from '../lib/api'
 
 const DEFAULT_CAPTION = 'Loving this! #YourBrand #Malaysia'
 
@@ -118,22 +118,24 @@ export function SharePage() {
     
     setDownloading(true)
     try {
-      const selectedImageData = campaign?.images?.filter(img => selectedImages.includes(img.id)) || []
-      
-      for (const image of selectedImageData) {
-        const res = await fetch(image.url)
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${campaignId}-${image.id}.jpg`
-        document.body.appendChild(a)
-        a.click()
-        a.remove()
-        URL.revokeObjectURL(url)
-        
-        // Small delay between downloads
-        await new Promise(resolve => setTimeout(resolve, 100))
+      // Use zip download for multiple images (better for mobile)
+      if (selectedImages.length > 1) {
+        await downloadImagesAsZip(campaignId, selectedImages)
+      } else {
+        // Single image download (original method)
+        const selectedImageData = campaign?.images?.filter(img => selectedImages.includes(img.id)) || []
+        for (const image of selectedImageData) {
+          const res = await fetch(image.url)
+          const blob = await res.blob()
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `${campaignId}-${image.id}.jpg`
+          document.body.appendChild(a)
+          a.click()
+          a.remove()
+          URL.revokeObjectURL(url)
+        }
       }
       
       postEvent({ 
