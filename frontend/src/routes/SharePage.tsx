@@ -33,6 +33,7 @@ export function SharePage() {
   const [loading, setLoading] = useState(true)
   const [apiError, setApiError] = useState<string | null>(null)
   const [selectedImages, setSelectedImages] = useState<string[]>([])
+  const [shareStatus, setShareStatus] = useState<string | null>(null)
 
   useEffect(() => {
     let closed = false
@@ -153,43 +154,140 @@ export function SharePage() {
     try {
       postEvent({ type: 'share_clicked', app: target, campaignId, scan: scanId }).catch(() => {})
       
-      // Enhanced sharing logic
-      if (navigator.canShare && navigator.canShare()) {
-        // Use Web Share API if available
-        const shareData: any = { 
-          text: caption,
-          url: window.location.origin 
-        }
-        
-        // Add images if supported
-        if (navigator.canShare({ files: [] })) {
-          const selectedImageData = campaign?.images?.filter(img => selectedImages.includes(img.id)) || []
-          if (selectedImageData.length > 0) {
+      // Platform-specific sharing logic
+      switch (target) {
+        case 'whatsapp':
+          // WhatsApp works great with direct URL sharing
+          const whatsappUrl = getShareUrl('whatsapp')
+          if (whatsappUrl) {
+            window.open(whatsappUrl, '_blank')
+          }
+          break
+          
+        case 'facebook':
+          // Facebook web sharing (works on mobile browsers)
+          const facebookUrl = getShareUrl('facebook')
+          if (facebookUrl) {
+            window.open(facebookUrl, '_blank')
+          }
+          break
+          
+        case 'instagram':
+          // Instagram: Try Web Share API first, then fallback to app
+          if (navigator.canShare && navigator.canShare()) {
             try {
-              const files = await Promise.all(
-                selectedImageData.map(async (img) => {
-                  const res = await fetch(img.url)
-                  const blob = await res.blob()
-                  return new File([blob], `${img.id}.jpg`, { type: 'image/jpeg' })
+              const selectedImageData = campaign?.images?.filter(img => selectedImages.includes(img.id)) || []
+              if (selectedImageData.length > 0) {
+                const files = await Promise.all(
+                  selectedImageData.map(async (img) => {
+                    const res = await fetch(img.url)
+                    const blob = await res.blob()
+                    return new File([blob], `${img.id}.jpg`, { type: 'image/jpeg' })
+                  })
+                )
+                await navigator.share({ 
+                  text: caption,
+                  files: files
                 })
-              )
-              shareData.files = files
+                return
+              }
             } catch (e) {
-              console.log('Could not prepare files for sharing')
+              console.log('Instagram Web Share failed, falling back to app')
             }
           }
-        }
-        
-        await navigator.share(shareData)
-      } else {
-        // Fallback to deep links or web sharing
-        const shareUrl = getShareUrl(target)
-        if (shareUrl) {
-          window.open(shareUrl, '_blank')
-        }
+          // Fallback: Open Instagram app
+          window.open('instagram://story-camera', '_blank')
+          break
+          
+        case 'tiktok':
+          // TikTok: Try Web Share API first, then fallback to app
+          if (navigator.canShare && navigator.canShare()) {
+            try {
+              const selectedImageData = campaign?.images?.filter(img => selectedImages.includes(img.id)) || []
+              if (selectedImageData.length > 0) {
+                const files = await Promise.all(
+                  selectedImageData.map(async (img) => {
+                    const res = await fetch(img.url)
+                    const blob = await res.blob()
+                    return new File([blob], `${img.id}.jpg`, { type: 'image/jpeg' })
+                  })
+                )
+                await navigator.share({ 
+                  text: caption,
+                  files: files
+                })
+                return
+              }
+            } catch (e) {
+              console.log('TikTok Web Share failed, falling back to app')
+            }
+          }
+          // Fallback: Open TikTok app
+          window.open('snssdk1233://', '_blank')
+          break
+          
+        case 'xhs':
+          // XHS: Try Web Share API first, then fallback to app
+          if (navigator.canShare && navigator.canShare()) {
+            try {
+              const selectedImageData = campaign?.images?.filter(img => selectedImages.includes(img.id)) || []
+              if (selectedImageData.length > 0) {
+                const files = await Promise.all(
+                  selectedImageData.map(async (img) => {
+                    const res = await fetch(img.url)
+                    const blob = await res.blob()
+                    return new File([blob], `${img.id}.jpg`, { type: 'image/jpeg' })
+                  })
+                )
+                await navigator.share({ 
+                  text: caption,
+                  files: files
+                })
+                return
+              }
+            } catch (e) {
+              console.log('XHS Web Share failed, falling back to app')
+            }
+          }
+          // Fallback: Open XHS app
+          window.open('xhsdiscover://', '_blank')
+          break
+          
+        default:
+          // Generic Web Share API for other platforms
+          if (navigator.canShare && navigator.canShare()) {
+            const shareData: any = { 
+              text: caption,
+              url: window.location.origin 
+            }
+            
+            // Add images if supported
+            if (navigator.canShare({ files: [] })) {
+              const selectedImageData = campaign?.images?.filter(img => selectedImages.includes(img.id)) || []
+              if (selectedImageData.length > 0) {
+                try {
+                  const files = await Promise.all(
+                    selectedImageData.map(async (img) => {
+                      const res = await fetch(img.url)
+                      const blob = await res.blob()
+                      return new File([blob], `${img.id}.jpg`, { type: 'image/jpeg' })
+                    })
+                  )
+                  shareData.files = files
+                } catch (e) {
+                  console.log('Could not prepare files for sharing')
+                }
+              }
+            }
+            
+            await navigator.share(shareData)
+          }
       }
     } catch (e) {
       console.error('Share failed:', e)
+      // Show user-friendly error message
+      setShareStatus(`Unable to open ${target}. Please make sure the app is installed and try again.`)
+      setTimeout(() => setShareStatus(null), 5000)
     }
   }
 
@@ -199,17 +297,19 @@ export function SharePage() {
     
     switch (target) {
       case 'instagram':
-        // Instagram doesn't support direct sharing via URL, but we can open the app
-        return 'instagram://app'
+        // Instagram Stories sharing (works better than feed posts)
+        return 'instagram://story-camera'
       case 'facebook':
+        // Facebook mobile app sharing
         return `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedCaption}`
       case 'whatsapp':
+        // WhatsApp with text and URL
         return `https://api.whatsapp.com/send?text=${encodedCaption}%20${encodedUrl}`
       case 'tiktok':
-        // TikTok doesn't support direct sharing via URL
+        // TikTok app (will open camera/upload)
         return 'snssdk1233://'
       case 'xhs':
-        // XHS doesn't support direct sharing via URL
+        // XHS app (will open posting interface)
         return 'xhsdiscover://'
       default:
         return null
@@ -333,6 +433,16 @@ export function SharePage() {
       {/* Social Media Sharing */}
       <div>
         <h2 className="text-xl font-semibold text-white mb-4">Share to Social Media</h2>
+        
+        {/* Instructions */}
+        <div className="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+          <p className="text-sm text-blue-300">
+            💡 <strong>How it works:</strong> Click any platform below. For Instagram, TikTok, and XHS, 
+            the app will open and you can paste the caption and select the downloaded images. 
+            WhatsApp and Facebook will open with the content pre-filled.
+          </p>
+        </div>
+        
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <button 
             onClick={() => handleWebShare('instagram')} 
@@ -371,6 +481,23 @@ export function SharePage() {
             Done
           </button>
         </div>
+        
+        {/* Platform-specific tips */}
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-neutral-400">
+          <div className="p-2 rounded bg-neutral-900/60">
+            <strong>WhatsApp & Facebook:</strong> Content will be pre-filled automatically
+          </div>
+          <div className="p-2 rounded bg-neutral-900/60">
+            <strong>Instagram, TikTok, XHS:</strong> App opens → Paste caption → Select downloaded images
+          </div>
+        </div>
+        
+        {/* Share Status */}
+        {shareStatus && (
+          <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+            <p className="text-sm text-red-300">{shareStatus}</p>
+          </div>
+        )}
       </div>
     </section>
   )

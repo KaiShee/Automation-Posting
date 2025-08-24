@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Links Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .whatsapp { background: #25D366; }
+        .facebook { background: #0866FF; }
+        .instagram { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+        .tiktok { background: #000; }
+        .xhs { background: #ff2442; }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .success { background: #1a5f1a; }
+        .error { background: #5f1a1a; }
+    </style>
+</head>
+<body>
+    <h1>🔗 Social Media Links Test</h1>
+    <p>Test all social media sharing links to ensure they work correctly on mobile devices.</p>
+
+    <div class="test-section">
+        <h3>📱 WhatsApp Test</h3>
+        <button class="button whatsapp" onclick="testWhatsApp()">Test WhatsApp</button>
+        <div id="whatsapp-status" class="status" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>📘 Facebook Test</h3>
+        <button class="button facebook" onclick="testFacebook()">Test Facebook</button>
+        <div id="facebook-status" class="status" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>📷 Instagram Test</h3>
+        <button class="button instagram" onclick="testInstagram()">Test Instagram</button>
+        <div id="instagram-status" class="status" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🎵 TikTok Test</h3>
+        <button class="button tiktok" onclick="testTikTok()">Test TikTok</button>
+        <div id="tiktok-status" class="status" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>📖 XHS (Xiaohongshu) Test</h3>
+        <button class="button xhs" onclick="testXHS()">Test XHS</button>
+        <div id="xhs-status" class="status" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🌐 Web Share API Test</h3>
+        <button class="button" style="background: #007acc;" onclick="testWebShare()">Test Web Share</button>
+        <div id="webshare-status" class="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        const testCaption = "Check out this amazing content! #test #socialmedia"
+        const testUrl = "https://example.com"
+
+        function showStatus(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId)
+            element.textContent = message
+            element.className = `status ${isSuccess ? 'success' : 'error'}`
+            element.style.display = 'block'
+            setTimeout(() => {
+                element.style.display = 'none'
+            }, 5000)
+        }
+
+        function testWhatsApp() {
+            try {
+                const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(testCaption + ' ' + testUrl)}`
+                window.open(url, '_blank')
+                showStatus('whatsapp-status', '✅ WhatsApp link opened successfully!', true)
+            } catch (e) {
+                showStatus('whatsapp-status', '❌ WhatsApp test failed: ' + e.message, false)
+            }
+        }
+
+        function testFacebook() {
+            try {
+                const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(testUrl)}&quote=${encodeURIComponent(testCaption)}`
+                window.open(url, '_blank')
+                showStatus('facebook-status', '✅ Facebook link opened successfully!', true)
+            } catch (e) {
+                showStatus('facebook-status', '❌ Facebook test failed: ' + e.message, false)
+            }
+        }
+
+        function testInstagram() {
+            try {
+                // Try Web Share API first
+                if (navigator.canShare && navigator.canShare()) {
+                    navigator.share({
+                        text: testCaption,
+                        url: testUrl
+                    }).then(() => {
+                        showStatus('instagram-status', '✅ Instagram shared via Web Share API!', true)
+                    }).catch(() => {
+                        // Fallback to app
+                        window.open('instagram://story-camera', '_blank')
+                        showStatus('instagram-status', '✅ Instagram app opened (fallback)!', true)
+                    })
+                } else {
+                    // Fallback to app
+                    window.open('instagram://story-camera', '_blank')
+                    showStatus('instagram-status', '✅ Instagram app opened (fallback)!', true)
+                }
+            } catch (e) {
+                showStatus('instagram-status', '❌ Instagram test failed: ' + e.message, false)
+            }
+        }
+
+        function testTikTok() {
+            try {
+                // Try Web Share API first
+                if (navigator.canShare && navigator.canShare()) {
+                    navigator.share({
+                        text: testCaption,
+                        url: testUrl
+                    }).then(() => {
+                        showStatus('tiktok-status', '✅ TikTok shared via Web Share API!', true)
+                    }).catch(() => {
+                        // Fallback to app
+                        window.open('snssdk1233://', '_blank')
+                        showStatus('tiktok-status', '✅ TikTok app opened (fallback)!', true)
+                    })
+                } else {
+                    // Fallback to app
+                    window.open('snssdk1233://', '_blank')
+                    showStatus('tiktok-status', '✅ TikTok app opened (fallback)!', true)
+                }
+            } catch (e) {
+                showStatus('tiktok-status', '❌ TikTok test failed: ' + e.message, false)
+            }
+        }
+
+        function testXHS() {
+            try {
+                // Try Web Share API first
+                if (navigator.canShare && navigator.canShare()) {
+                    navigator.share({
+                        text: testCaption,
+                        url: testUrl
+                    }).then(() => {
+                        showStatus('xhs-status', '✅ XHS shared via Web Share API!', true)
+                    }).catch(() => {
+                        // Fallback to app
+                        window.open('xhsdiscover://', '_blank')
+                        showStatus('xhs-status', '✅ XHS app opened (fallback)!', true)
+                    })
+                } else {
+                    // Fallback to app
+                    window.open('xhsdiscover://', '_blank')
+                    showStatus('xhs-status', '✅ XHS app opened (fallback)!', true)
+                }
+            } catch (e) {
+                showStatus('xhs-status', '❌ XHS test failed: ' + e.message, false)
+            }
+        }
+
+        function testWebShare() {
+            try {
+                if (navigator.canShare && navigator.canShare()) {
+                    navigator.share({
+                        title: 'Test Share',
+                        text: testCaption,
+                        url: testUrl
+                    }).then(() => {
+                        showStatus('webshare-status', '✅ Web Share API worked!', true)
+                    }).catch((e) => {
+                        showStatus('webshare-status', '❌ Web Share API failed: ' + e.message, false)
+                    })
+                } else {
+                    showStatus('webshare-status', '❌ Web Share API not supported on this device/browser', false)
+                }
+            } catch (e) {
+                showStatus('webshare-status', '❌ Web Share test failed: ' + e.message, false)
+            }
+        }
+
+        // Check Web Share API support on page load
+        window.addEventListener('load', () => {
+            if (navigator.canShare && navigator.canShare()) {
+                console.log('✅ Web Share API is supported')
+            } else {
+                console.log('❌ Web Share API is not supported')
+            }
+        })
+    </script>
+</body>
+</html>

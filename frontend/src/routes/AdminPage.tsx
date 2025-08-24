@@ -154,12 +154,67 @@ export function AdminPage() {
     }
   }
 
+  async function testSocialMediaLinks() {
+    try {
+      const testCaption = "Test caption for social media sharing"
+      const testUrl = window.location.origin
+      
+      const results: Record<string, string | null> = {
+        whatsapp: null,
+        facebook: null,
+        instagram: null,
+        tiktok: null,
+        xhs: null,
+        webShare: null
+      }
+
+      // Test Web Share API
+      if (navigator.canShare && navigator.canShare()) {
+        results.webShare = 'supported'
+      } else {
+        results.webShare = 'not_supported'
+      }
+
+      // Test deep links
+      try {
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(testCaption)}`, '_blank')
+        results.whatsapp = 'opened'
+      } catch (e) {
+        results.whatsapp = 'failed'
+      }
+
+      try {
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(testUrl)}`, '_blank')
+        results.facebook = 'opened'
+      } catch (e) {
+        results.facebook = 'failed'
+      }
+
+      setDebugResults(prev => ({ 
+        ...prev, 
+        socialMedia: { 
+          status: 'success', 
+          data: results 
+        } 
+      }))
+    } catch (error) {
+      setDebugResults(prev => ({ 
+        ...prev, 
+        socialMedia: { 
+          status: 'error', 
+          error: error instanceof Error ? error.message : String(error) 
+        } 
+      }))
+    }
+  }
+
   async function runAllTests() {
     setDebugResults({})
     await Promise.all([
       testBackendHealth(),
       debugImagesFolder(),
-      testImagesAPI()
+      testImagesAPI(),
+      testSocialMediaLinks()
     ])
   }
 
@@ -302,12 +357,18 @@ export function AdminPage() {
                >
                  Debug Images Folder
                </button>
-               <button
-                 onClick={testImagesAPI}
-                 className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-sm"
-               >
-                 Test Images API
-               </button>
+                               <button
+                  onClick={testImagesAPI}
+                  className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-sm"
+                >
+                  Test Images API
+                </button>
+                <button
+                  onClick={testSocialMediaLinks}
+                  className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-sm"
+                >
+                  Test Social Media
+                </button>
              </div>
            </div>
 
@@ -352,23 +413,46 @@ export function AdminPage() {
                  </div>
                )}
 
-               {debugResults.imagesApi && (
-                 <div className="p-3 rounded-lg border border-white/10 bg-neutral-900/60">
-                   <h5 className="font-medium mb-2">🖼️ Images API</h5>
-                   {debugResults.imagesApi.status === 'success' ? (
-                     <div className="text-green-300">
-                       ✅ Images API working! Found {debugResults.imagesApi.data.images?.length || 0} images
-                       <pre className="mt-2 text-xs bg-neutral-800 p-2 rounded overflow-x-auto">
-                         {JSON.stringify(debugResults.imagesApi.data, null, 2)}
-                       </pre>
-                     </div>
-                   ) : (
-                     <div className="text-red-300">
-                       ❌ Images API failed: {debugResults.imagesApi.error}
-                     </div>
-                   )}
-                 </div>
-               )}
+                               {debugResults.imagesApi && (
+                  <div className="p-3 rounded-lg border border-white/10 bg-neutral-900/60">
+                    <h5 className="font-medium mb-2">🖼️ Images API</h5>
+                    {debugResults.imagesApi.status === 'success' ? (
+                      <div className="text-green-300">
+                        ✅ Images API working! Found {debugResults.imagesApi.data.images?.length || 0} images
+                        <pre className="mt-2 text-xs bg-neutral-800 p-2 rounded overflow-x-auto">
+                          {JSON.stringify(debugResults.imagesApi.data, null, 2)}
+                        </pre>
+                      </div>
+                    ) : (
+                      <div className="text-red-300">
+                        ❌ Images API failed: {debugResults.imagesApi.error}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {debugResults.socialMedia && (
+                  <div className="p-3 rounded-lg border border-white/10 bg-neutral-900/60">
+                    <h5 className="font-medium mb-2">📱 Social Media Links</h5>
+                    {debugResults.socialMedia.status === 'success' ? (
+                      <div className="text-green-300">
+                        ✅ Social media links tested!
+                        <div className="mt-2 space-y-1 text-xs">
+                          <div>Web Share API: <span className={debugResults.socialMedia.data.webShare === 'supported' ? 'text-green-400' : 'text-yellow-400'}>{debugResults.socialMedia.data.webShare}</span></div>
+                          <div>WhatsApp: <span className={debugResults.socialMedia.data.whatsapp === 'opened' ? 'text-green-400' : 'text-red-400'}>{debugResults.socialMedia.data.whatsapp}</span></div>
+                          <div>Facebook: <span className={debugResults.socialMedia.data.facebook === 'opened' ? 'text-green-400' : 'text-red-400'}>{debugResults.socialMedia.data.facebook}</span></div>
+                        </div>
+                        <pre className="mt-2 text-xs bg-neutral-800 p-2 rounded overflow-x-auto">
+                          {JSON.stringify(debugResults.socialMedia.data, null, 2)}
+                        </pre>
+                      </div>
+                    ) : (
+                      <div className="text-red-300">
+                        ❌ Social media test failed: {debugResults.socialMedia.error}
+                      </div>
+                    )}
+                  </div>
+                )}
              </div>
            )}
          </div>
