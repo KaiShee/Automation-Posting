@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background: #1a4d1a; border: 1px solid #4d8f4d; }
+        .error { background: #4d1a1a; border: 1px solid #8f4d4d; }
+        .loading { background: #1a1a4d; border: 1px solid #4d4d8f; }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #005a9e; }
+        pre {
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Backend Debug Test</h1>
+    
+    <div class="test-section">
+        <h2>🏥 Health Check</h2>
+        <button onclick="testHealth()">Test Backend Health</button>
+        <div id="health-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📁 Debug Images Folder</h2>
+        <button onclick="debugImages()">Debug Demo Images</button>
+        <div id="debug-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🖼️ Test Images API</h2>
+        <button onclick="testImagesAPI()">Test Images API</button>
+        <div id="images-api-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📤 Test Upload</h2>
+        <input type="file" id="testFile" accept="image/*" />
+        <button onclick="testUpload()">Test Upload</button>
+        <div id="upload-results"></div>
+    </div>
+
+    <script>
+        async function testHealth() {
+            const results = document.getElementById('health-results');
+            results.innerHTML = '<div class="status loading">Testing backend health...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:4000/api/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    results.innerHTML = `
+                        <div class="status success">✅ Backend is running!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    results.innerHTML = `<div class="status error">❌ Backend error: ${response.status}</div>`;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="status error">❌ Backend not running: ${error.message}</div>`;
+            }
+        }
+
+        async function debugImages() {
+            const results = document.getElementById('debug-results');
+            results.innerHTML = '<div class="status loading">Debugging images folder...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:4000/api/debug/images/demo');
+                if (response.ok) {
+                    const data = await response.json();
+                    results.innerHTML = `
+                        <div class="status success">✅ Debug info retrieved!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    results.innerHTML = `<div class="status error">❌ Debug error: ${response.status}</div>`;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="status error">❌ Debug failed: ${error.message}</div>`;
+            }
+        }
+
+        async function testImagesAPI() {
+            const results = document.getElementById('images-api-results');
+            results.innerHTML = '<div class="status loading">Testing images API...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:4000/api/campaigns/demo/images');
+                if (response.ok) {
+                    const data = await response.json();
+                    results.innerHTML = `
+                        <div class="status success">✅ Images API working!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    results.innerHTML = `<div class="status error">❌ Images API error: ${response.status}</div>`;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="status error">❌ Images API failed: ${error.message}</div>`;
+            }
+        }
+
+        async function testUpload() {
+            const fileInput = document.getElementById('testFile');
+            const results = document.getElementById('upload-results');
+            
+            if (!fileInput.files[0]) {
+                results.innerHTML = '<div class="status error">❌ Please select a file first</div>';
+                return;
+            }
+            
+            results.innerHTML = '<div class="status loading">Testing upload...</div>';
+            
+            try {
+                const formData = new FormData();
+                formData.append('images', fileInput.files[0]);
+                
+                const response = await fetch('http://localhost:4000/api/upload/demo', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    results.innerHTML = `
+                        <div class="status success">✅ Upload successful!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    results.innerHTML = `<div class="status error">❌ Upload failed: ${response.status} - ${errorText}</div>`;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="status error">❌ Upload failed: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-test on page load
+        window.addEventListener('load', () => {
+            setTimeout(testHealth, 1000);
+        });
+    </script>
+</body>
+</html>

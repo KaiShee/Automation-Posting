@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image System Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .image-item {
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .image-item img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background: #1a4d1a; border: 1px solid #4d8f4d; }
+        .error { background: #4d1a1a; border: 1px solid #8f4d4d; }
+        .loading { background: #1a1a4d; border: 1px solid #4d4d8f; }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #005a9e; }
+        .url-display {
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🖼️ Image System Test</h1>
+    
+    <div class="test-section">
+        <h2>📁 Demo Folder Contents</h2>
+        <p>Images found in <code>backend/images/demo/</code>:</p>
+        <ul>
+            <li>example1.jpg</li>
+            <li>example2.jpg</li>
+            <li>example3.jpeg</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🔗 Direct Image URLs</h2>
+        <p>These URLs should work if the backend is running:</p>
+        <div class="url-display">
+            http://localhost:4000/api/images/demo/example1.jpg
+        </div>
+        <div class="url-display">
+            http://localhost:4000/api/images/demo/example2.jpg
+        </div>
+        <div class="url-display">
+            http://localhost:4000/api/images/demo/example3.jpeg
+        </div>
+        
+        <button onclick="testDirectImages()">Test Direct Image Loading</button>
+        <div id="direct-test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 API Test</h2>
+        <button onclick="testAPI()">Test Images API</button>
+        <div id="api-test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🖼️ Image Display Test</h2>
+        <div id="image-display"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📱 Admin Page Access</h2>
+        <p>To access the admin page, make sure both servers are running:</p>
+        <div class="url-display">
+            http://localhost:5173/admin?c=demo
+        </div>
+        <p><strong>Backend:</strong> <code>cd backend && npm run dev</code></p>
+        <p><strong>Frontend:</strong> <code>cd frontend && npm run dev</code></p>
+    </div>
+
+    <script>
+        async function testDirectImages() {
+            const results = document.getElementById('direct-test-results');
+            results.innerHTML = '<div class="status loading">Testing direct image URLs...</div>';
+            
+            const images = ['example1.jpg', 'example2.jpg', 'example3.jpeg'];
+            let successCount = 0;
+            
+            for (const image of images) {
+                try {
+                    const response = await fetch(`http://localhost:4000/api/images/demo/${image}`);
+                    if (response.ok) {
+                        successCount++;
+                    }
+                } catch (error) {
+                    console.error(`Failed to load ${image}:`, error);
+                }
+            }
+            
+            if (successCount === images.length) {
+                results.innerHTML = '<div class="status success">✅ All images loaded successfully!</div>';
+            } else if (successCount > 0) {
+                results.innerHTML = `<div class="status error">⚠️ ${successCount}/${images.length} images loaded. Backend might not be running.</div>`;
+            } else {
+                results.innerHTML = '<div class="status error">❌ No images loaded. Backend server is not running.</div>';
+            }
+        }
+
+        async function testAPI() {
+            const results = document.getElementById('api-test-results');
+            results.innerHTML = '<div class="status loading">Testing API...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:4000/api/campaigns/demo/images');
+                if (response.ok) {
+                    const data = await response.json();
+                    results.innerHTML = `
+                        <div class="status success">✅ API working! Found ${data.images.length} images</div>
+                        <div class="image-grid">
+                            ${data.images.map(img => `
+                                <div class="image-item">
+                                    <img src="${img.url}" alt="${img.alt}" />
+                                    <p>${img.filename}</p>
+                                    <p>ID: ${img.id}</p>
+                                    <p>${img.selected ? 'Default' : 'Optional'}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    results.innerHTML = '<div class="status error">❌ API returned error: ' + response.status + '</div>';
+                }
+            } catch (error) {
+                results.innerHTML = '<div class="status error">❌ API test failed. Backend server is not running.</div>';
+            }
+        }
+
+        // Auto-test on page load
+        window.addEventListener('load', () => {
+            setTimeout(testAPI, 1000);
+        });
+    </script>
+</body>
+</html>

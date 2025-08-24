@@ -90,6 +90,44 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true })
 })
 
+// Debug endpoint to check images folder
+app.get('/api/debug/images/:campaignId', async (req, res) => {
+  try {
+    const { campaignId } = req.params
+    const imagesFolder = path.join(__dirname, '..', 'images', campaignId)
+    
+    const debug = {
+      campaignId,
+      imagesFolder,
+      folderExists: false,
+      files: [],
+      imageFiles: [],
+      error: null
+    }
+    
+    try {
+      await fs.access(imagesFolder)
+      debug.folderExists = true
+      
+      const files = await fs.readdir(imagesFolder)
+      debug.files = files
+      
+      const imageFiles = files.filter(file => {
+        const ext = path.extname(file).toLowerCase()
+        return ['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)
+      })
+      debug.imageFiles = imageFiles
+      
+    } catch (error) {
+      debug.error = error.message
+    }
+    
+    res.json(debug)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 app.get('/api/lan', (req, res) => {
   const nics = os.networkInterfaces()
   const ipv4 = []
